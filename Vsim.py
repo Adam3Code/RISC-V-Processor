@@ -1,26 +1,21 @@
-#TODO:1) Finish up implement all thhe instructions: 
-#TODO 2) Ensure that is the correct immediate values: 
-#TODO 3) Make instructions compute values 
-#TODO 4) Make two files when running script 
-#TODO 5) Run tests
-#TODO 6) Right comments and optimize code
+###################On my honor, I have neither given nor received any unauthorized aid on this assignment###############################
+#Imports
+import sys
 
-#Global Variables
+####Global Variables
+#Intializing register 
 registers = {f"x{i}": 0 for i in range(32)}
-storage_capacity = 1024
 data_storage = {}
-storage_index = 0
+#Dictionary that maps from opcode value to opcod_ename
 opcode_1 = {'00000': "beq", '00001': "bne", '00010': "blt", '00011': "sw"}
 opcode_2 = {'00000': "add", '00001': "sub", "00010": "and", "00011": "or"}
 opcode_3 = {'00000': "addi", '00001': "andi", "00010": "ori", "00011": "sll", "00100": 'sra', "00101": 'lw'}
 opcode_4 = {'00000': "jal", '11111': "break"}
 current_pc = 256
-next_pc = 256
-file = "sample.txt"
+file = sys.argv[1]
 flag = False
 
 #Loading data:
-
 def Load_Data(Instruction_List):
     opcode_break = '11111'
 
@@ -42,7 +37,7 @@ def Load_Data(Instruction_List):
 
 
 
-#Optimization: Polymorphism 
+#class Instruction: Contains all the opcode and more.
 class Instruction:
     def __init__(self):
         self.category = ""
@@ -126,7 +121,7 @@ class Instruction:
     def get_current_instruction_string(self):
         return self.curr_ins_str
     
-##Class ALU
+##Class ALU, contains all the functions
 class ALU:
     def __init__(self, instruction: Instruction,compute:bool,pc):
         self.compute = compute
@@ -159,7 +154,6 @@ class ALU:
         if self.compute:
             registers[rd] = self.pc + 4
             self.pc += offset*2
-            print(f'jal pc {self.pc-offset*2}->{self.pc}')
         
     def beq(self):
         rs1 = f"x{int(self.instruction.rs1, 2)}"
@@ -171,10 +165,8 @@ class ALU:
         if self.compute:
             if rs1_value == rs2_value:
                 self.pc += offset*2
-                print(f"beq pc: {self.pc-offset*2} ->{self.pc} and is true")
             else:
                 self.pc += 4 
-                print(f"beq pc:{self.pc-4} -> {self.pc} and is false")
             
 
     def blt(self):
@@ -188,10 +180,8 @@ class ALU:
         if self.compute:
             if rs1_value < rs2_value:
                 self.pc += offset*2
-                print(f"blt {self.pc-offset*2} ->{self.pc} and is true ")
             else:
                 self.pc += 4  # Only move to the next instruction if no branch is taken
-                print(f"blt false {self.pc-4} ->{self.pc} and is false ")
     def add(self):
         rs1 = f"x{int(self.instruction.rs1, 2)}"
         rs2 = f"x{int(self.instruction.rs2, 2)}"
@@ -204,7 +194,6 @@ class ALU:
             result = rs1_value + rs2_value
             registers[rd] = result
             self.pc = self.pc+4
-            print(f"add pc: {self.pc-4}->{self.pc}")
 
     def sub(self):
         rs1 = f"x{int(self.instruction.rs1, 2)}"
@@ -217,7 +206,6 @@ class ALU:
             result = rs1_value - rs2_value
             registers[rd] = result
             self.pc = self.pc +4
-            print(f"sub pc: {self.pc-4}->{self.pc}")
         
 
     def addi(self):
@@ -225,12 +213,10 @@ class ALU:
         rd = f"x{int(self.instruction.rd, 2)}"
         rs1_value = registers.get(rs1, 0)
         imm_value = int(self.instruction.imm_11_0, 2)
-        print("before",self.pc)
         self.instruction.set_curr_ins_str(f"{self.pc}\taddi {rd}, {rs1}, #{imm_value}")
         if self.compute:
             registers[rd] = rs1_value+imm_value
             self.pc = self.pc+4
-            print(f'addi pc {self.pc-4} -> {self.pc} and new reg {rd} is {registers.get(rd)}')
 
     def andi(self):
         rs1 = f"x{int(self.instruction.rs1, 2)}"
@@ -241,7 +227,6 @@ class ALU:
         if self.compute:
             registers[rd]=rs1_value&imm_value
             self.pc = self.pc+4
-            print(f'and - pc: {self.pc-4}-> {self.pc} and new register is {registers.get(rd)}')
 
    
 
@@ -255,7 +240,6 @@ class ALU:
         if self.compute:
             self.pc = self.pc+4
             registers[rd] = result
-            print(f'ori - pc: {self.pc-4}-> {self.pc} and new register is {registers.get(rd)}')
      
 
     def sll(self):
@@ -268,7 +252,6 @@ class ALU:
         if self.compute:
             registers[rd] = result
             self.pc = self.pc+4
-        print(f'sll - pc: {self.pc-4}-> {self.pc} and new register {rd} is {registers.get(rd)}')
             
 
 
@@ -290,13 +273,12 @@ class ALU:
         rd = f"x{int(self.instruction.rd, 2)}"
         imm_11_0 = unsigned_bin__to_int(self.instruction.imm_11_0)
         address = registers.get(rs1, 0) + imm_11_0
-        self.instruction.set_curr_ins_str(f"{self.pc}\tlw, {imm_11_0}({rs1})")
+        self.instruction.set_curr_ins_str(f"{self.pc}\tlw {rd}, {imm_11_0}({rs1})")
         if self.compute:
             
             result = data_storage[address]
             registers[rd] = result
             self.pc = self.pc+4
-            print(f'lw - pc: {self.pc-4}-> {self.pc} and new register {rd} is {registers.get(rd)}')
             
 
     def sw(self):
@@ -305,7 +287,6 @@ class ALU:
         rs1_value = registers.get(rs1, 0)
         rs2_value = registers.get(rs2, 0)
         imm_14_0 = unsigned_bin__to_int(self.instruction.imm_14_0)
-        offset = imm_14_0
         self.instruction.set_curr_ins_str(f"{self.pc}\tsw {rs1}, {imm_14_0}({rs2})")
         if self.compute:
             data_storage[(rs2_value+imm_14_0)]=rs1_value
@@ -329,7 +310,8 @@ def unsigned_bin__to_int(binary_string):
     for i in range(1, len(binary_list)):
         res += binary_list[i] * (2 ** (len(binary_list) - i - 1)) 
     return res
-#Merge this with Instruction Object 
+
+#Decompose instruction in binary_line into different compoents depending on the category of the instruction
 def decomposition(instruction_obj, instruction_binary_line):
     category = Category(instruction_binary_line)
     instruction_obj.setCategory(category)
@@ -370,48 +352,41 @@ def decomposition(instruction_obj, instruction_binary_line):
         instruction_obj.setCategory4(imm_19_0, rd, opcode, constant_00)
         instruction_obj.setOpcodeName(opcode_4.get(opcode, "Unknown"))
 
-
+#Function Category - Input: instruction in binary -> Output: Category of the instruction
 def Category(binary_input):
-    category_map = {
-        '11': '1',
-        '01': '2',
-        '10': '3',
-        '00': '4'
-    }
+    category_map = {'11': '1', '01': '2', '10': '3', '00': '4'}
     return f"Category-{category_map.get(binary_input[-2:], 'Unknown')}"
 
 
-# Load Instructions
+
+# Load sample file, instruction object and ALU object.
 instructions = read_input(file)
 instruction_obj = Instruction()
 alu = ALU(instruction_obj, False, current_pc)
-
+#Intialize array which will be used for the files
 log_disassembly = []
 log_simulation = []
 
-# Load Data after break instruction
+# Data loaded
 Load_Data(instructions)
 
-# 1. Disassembly Phase
+# Diassembly file
 alu.setCurrentPC(256) 
-print(instructions[0])
 
 for i, instruction in enumerate(instructions):
-    if not alu.flag:  
+    if not alu.flag:  # Flag used inside of alu to determine when break function happens
         decomposition(instruction_obj, instruction)
         alu.execute()
-        log_disassembly.append(f'{alu.pc} {instruction} {instruction_obj.get_current_instruction_string()}')
+        log_disassembly.append(f'{instruction}\t{instruction_obj.get_current_instruction_string()}')
     else:
-        log_disassembly.append(f'{alu.pc} {instruction} {unsigned_bin__to_int(instruction)}')
-    print(alu.pc,instruction_obj.opcode_name)
+        log_disassembly.append(f'{instruction}\t{alu.pc} {unsigned_bin__to_int(instruction)}')
     alu.pc +=4
 
-# Disassembly phase
-with open("sample_disassembly.txt", "w") as f:
+with open("disassembly.txt", "w") as f:
     for entry in log_disassembly:
         f.write(entry + "\n")
 
-#Simulation Phase
+#Simulation file
 alu.setCurrentPC(256)
 alu.setFlag(False)
 alu.setCompute(True)
@@ -422,7 +397,6 @@ while True:
     index = int((alu.pc - 256) / 4)
     decomposition(instruction_obj, instructions[index])
     alu.execute()
-    print("cycle", cycle)
     
     # Header output
     sim_output = []
@@ -443,14 +417,14 @@ while True:
         )
         sim_output.append(address_line)
     
-    # Add to log
+    # log_simulation array extended by sim_out
     log_simulation.extend(sim_output)
     if alu.flag:
         break
     
     cycle += 1
 
-# Write to file
-with open("sample_simulation.txt", "w") as f:
+# every entry in log_simulation is written to simulation.txt
+with open("simulation.txt", "w") as f:
     for entry in log_simulation:
         f.write(entry + "\n")
