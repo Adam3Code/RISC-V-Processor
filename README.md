@@ -6,3 +6,8 @@
 • Generate the instruction-by-instruction simulation of the RISC-V code (simulator). It should also
 produce/print the contents of registers and data memories after execution of each instruction. Please
 see the sample simulation output file in the project assignment
+
+
+## How to run
+1) In the terminal write "python3 Vsim.py sample.txt"
+2) This will output two files diassembly.txt and sample.txt. These are equivelent to sample_disassembly.txt, sample_simulation.txt
